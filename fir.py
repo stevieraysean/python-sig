@@ -1,10 +1,7 @@
 from numpy import pi
 from element import summation, multiply, delay, sys_port, Element
 
-
-
 class Fir():
-
     def __init__(self, coeffs=[]):
         self.coefficients = coeffs
 
@@ -25,20 +22,14 @@ class Fir():
         self.mults = []
         self.sums = []
 
-
-
-        #create elements and store in lists
+        # create elements and store in lists
         for coeff in self.coefficients[1:]:
             self.order += 1
             self.delays.append(delay())
             self.mults.append(multiply(coeff))
             self.sums.append(summation())
 
-        # print(self.delays)
-        # print(self.mults)
-        # print(self.sums)
-
-        #assign routing
+        # assign routing
         for i in range(0, self.order):
             if i == 0:
                 self.fir_filter[self.input0].append(self.delays[i])
@@ -56,68 +47,86 @@ class Fir():
 
             self.fir_filter[self.sums[i]] = [None]
 
-
-        print("filter=")
-        for element in self.fir_filter.keys():
-            if isinstance(element, multiply):
-                print("multiply = ", element.get_co(), element,self.fir_filter.get(element))
-            else:
-                print(element, self.fir_filter.get(element))
-
-
+        # TODO: delete debug
+        #
+        # print("filter=")
+        # for element in self.fir_filter.keys():
+        #     if isinstance(element, multiply):
+        #         print("multiply = ", element.get_co(), element,self.fir_filter.get(element))
+        #     else:
+        #         print(element, self.fir_filter.get(element))
 
     def filter_data(self, y):
         y_filt = []
 
         for sample in y:
+            # pass input sample in through input0, a fake element which acts as a input port
             self.input0.set_input(sample)
+            self.input0.clk()
+            inputs = self.fir_filter.get(self.input0)
 
-            for input_element in self.fir_filter.keys():
-                output_elements = self.fir_filter.get(input_element)        
+            # pass input sample in to first real elements in filter
+            for input_element in inputs:
+                input_element.set_input(self.input0.output)
+
+            # propogate sample along delay elements
+            for delay_element in self.delays:
+                delay_outs = self.fir_filter.get(delay_element)
+                for output in delay_outs:
+                    output.set_input(delay_element.output)
+                delay_element.clk()
+
+            # multiply through coefficients
+            for multiplier_element in self.mults:
+                multiplier_element.clk()
+                mult_outs = self.fir_filter.get(multiplier_element)
+                for output in mult_outs:
+                    output.set_input(multiplier_element.output)     
             
-                for element in output_elements:
-                    if element != None:
-                        element.set_input(input_element.output)
-                    else:
-                        y_filt.append(input_element.output)
-
-            for element in self.fir_filter.keys():
-                element.clk()
+            # sum all the multiplier outputs
+            for sum_element in self.sums:
+                sum_element.clk()
+                if self.fir_filter.get(sum_element) != [None]:
+                    sum_outs = self.fir_filter.get(sum_element)
+                    for output in sum_outs:
+                        output.set_input(sum_element.output)
+                else:
+                    # output of the fir filter
+                    y_filt.append(sum_element.output)
 
         return y_filt
 
 
-# # basic 3rd Order FIR
+# initial prototype
+
+# basic 3rd Order FIR
 # input0 = sys_port()
-# mult0 = multiply(0.2462)
-
-
 # delay1 = delay()
 # delay2 = delay()
 # delay3 = delay()
-
+# mult0 = multiply(0.2462)
 # mult1 = multiply(0.0701)
 # mult2 = multiply(0.0701)
 # mult3 = multiply(0.2462)
-
 # sum1 = summation()
 # sum2 = summation()
 # sum3 = summation()
 
-
 # fir = {
 #     input0 : [mult0, delay1],
 #     mult0  : [sum1],
-
 #     delay1 : [delay2, mult1],
 #     mult1  : [sum1],
 #     sum1   : [sum2],
-
 #     delay2 : [delay3, mult2],
 #     mult2  : [sum2],
 #     sum2   : [sum3],
-
 #     delay3 : [mult3],
 #     mult3  : [sum3],
 #     sum3   : [None]
 # }
+
+# fir = Fir([-0.0390, -0.0187, -0.0146, -0.0028, 0.0168, 
+#            0.0433, 0.0736, 0.1039, 0.1298, 0.1472, 
+#            0.1533, 0.1472, 0.1298, 0.1039, 0.0736, 
+#            0.0433, 0.0168, -0.0028, -0.0146, -0.0187, -0.0390])
