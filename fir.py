@@ -32,58 +32,55 @@ class Fir():
         # assign routing
         for i in range(0, self.order):
             if i == 0:
+                # inital connect output of input0 to first delat stage.
                 self.fir_filter[self.input0].append(self.delays[i])
 
+            # connect additional delay stages, to each other and each corresponing multiplier.
             if len(self.delays) > i+1 and self.delays[i+1] != None:
                 self.fir_filter[self.delays[i]] = [self.mults[i], self.delays[i+1]]
             else:
                 self.fir_filter[self.delays[i]] = [self.mults[i]]
 
+            # connect multiplers to summation elements.
             self.fir_filter[self.mults[i]] = [self.sums[i]]
 
+            # find the output of the previous stage and connect to summation element of this stage.
             for element in self.fir_filter.keys():
                 if self.fir_filter.get(element) == [None]:
                     self.fir_filter[element] = [self.sums[i]]
 
+            # set summation output to be the output of the filter, if no further stages added.
             self.fir_filter[self.sums[i]] = [None]
 
-        # TODO: delete debug
-        #
-        # print("filter=")
-        # for element in self.fir_filter.keys():
-        #     if isinstance(element, multiply):
-        #         print("multiply = ", element.get_co(), element,self.fir_filter.get(element))
-        #     else:
-        #         print(element, self.fir_filter.get(element))
 
     def filter_data(self, y):
         y_filt = []
 
         for sample in y:
-            # pass input sample in through input0, a fake element which acts as a input port
+            # pass input sample in through input0, a fake element which acts as a input port.
             self.input0.set_input(sample)
             self.input0.clk()
             inputs = self.fir_filter.get(self.input0)
 
-            # pass input sample in to first real elements in filter
+            # pass input sample in to first real elements in filter.
             for input_element in inputs:
                 input_element.set_input(self.input0.output)
 
-            # propogate sample along delay elements
+            # propogate sample along delay elements.
             for delay_element in self.delays:
                 delay_outs = self.fir_filter.get(delay_element)
                 for output in delay_outs:
                     output.set_input(delay_element.output)
                 delay_element.clk()
 
-            # multiply through coefficients
+            # multiply through coefficients.
             for multiplier_element in self.mults:
                 multiplier_element.clk()
                 mult_outs = self.fir_filter.get(multiplier_element)
                 for output in mult_outs:
                     output.set_input(multiplier_element.output)     
             
-            # sum all the multiplier outputs
+            # sum all the multiplier outputs.
             for sum_element in self.sums:
                 sum_element.clk()
                 if self.fir_filter.get(sum_element) != [None]:
@@ -91,7 +88,7 @@ class Fir():
                     for output in sum_outs:
                         output.set_input(sum_element.output)
                 else:
-                    # output of the fir filter
+                    # output of the fir filter.
                     y_filt.append(sum_element.output)
 
         return y_filt
