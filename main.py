@@ -9,9 +9,9 @@ freq = 1000
 freq2 = 10000
 freq3 = 23000
 
-#1/100th of second at 100kHz
-x = linspace(0, 0.1,10000)
-y = sin(2*pi*freq*x) + 0.1 * cos(2*pi*freq2*x) * cos(2*pi*freq3*x)
+# 1/10th of second at 100kHz
+x = linspace(0, 0.1, 10000)
+y = sin(2*pi*freq*x) + 0.1*cos(2*pi*freq2*x) + 0.3*cos(2*pi*freq3*x)
 
 # MATLAB Parks-McClellan optimal equiripple FIR filter
 # n = 50;                      % Filter order
