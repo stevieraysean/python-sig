@@ -2,101 +2,85 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from numpy import pi, sin, cos, linspace
-import abc
+from element import summation, multiply, delay, sys_port
+from fir import Fir
 
 
-freq = 20
+freq = 40000
+freq2 = 1500
 
-x = linspace(0, 2*pi*freq,48000)
-y = sin(x) + 0.2 * cos(x*100) + 0.7 * sin(x*27)
-
-
-class Element(object):
-    def __init__(self):
-        self.input = 0.
-        self.output = 0.
-
-    def clk(self):
-        pass
-
-    def set_input(self, values):
-        self.input = values
+x = linspace(0, 0.1,10000)
+y = sin(2*pi*freq*x)# + 0.1 * cos(2*pi*freq2*x)
 
 
-class summation(Element):
-    def set_input(self, value):
-        self.input = self.input + value
-
-    def clk(self):
-        self.output = self.input
-        self.input = 0.
-
-class multiply(Element):
-    #def set_coeff(self, coeff):
-    def __init__(self, coeff):
-        self.input = 0.
-        self.output = 0.
-        self.coefficient = coeff
-
-    def clk(self):
-        self.output = self.input * self.coefficient
-
-class delay(Element):
-    def clk(self):
-        self.output = self.input
-
-class sys_port(Element):
-    def clk(self):
-        self.output = self.input
-
-input0 = sys_port()
-delay0 = delay()
-delay1 = delay()
-delay2 = delay()
-mult0 = multiply(0.25)
-mult1 = multiply(0.25)
-mult2 = multiply(0.25)
-mult3 = multiply(0.25)
-sum1 = summation()
-sum2 = summation()
-sum3 = summation()
 
 
-fir = {
-    input0 : [delay0, mult0],	
-    delay0 : [delay1, mult1],
-    mult0  : [sum1],
-    delay1 : [delay2, mult2],
-    mult1  : [sum1],
-    sum1   : [sum2],
-    delay2 : [mult3],
-    mult3  : [sum3],
-    sum2   : [sum3],
-    sum3   : [None]
-}
+# basic 3rd Order FIR
+# input0 = sys_port()
+# delay1 = delay()
+# delay2 = delay()
+# delay3 = delay()
+# mult0 = multiply(0.2462)
+# mult1 = multiply(0.0701)
+# mult2 = multiply(0.0701)
+# mult3 = multiply(0.2462)
+# sum1 = summation()
+# sum2 = summation()
+# sum3 = summation()
 
 
-y_filt = []
+# fir = {
+#     input0 : [mult0, delay1],
+#     mult0  : [sum1],
 
-for sample in y:
-    input0.set_input(sample)
+#     delay1 : [delay2, mult1],
+#     mult1  : [sum1],
+#     sum1   : [sum2],
 
-    for input_element in fir.keys():
-        output_elements = fir.get(input_element)        
+#     delay2 : [delay3, mult2],
+#     mult2  : [sum2],
+#     sum2   : [sum3],
+
+#     delay3 : [mult3],
+#     mult3  : [sum3],
+#     sum3   : [None]
+# }
+
+# fir = Fir([-0.0390, -0.0187, -0.0146, -0.0028, 0.0168, 
+#            0.0433, 0.0736, 0.1039, 0.1298, 0.1472, 
+#            0.1533, 0.1472, 0.1298, 0.1039, 0.0736, 
+#            0.0433, 0.0168, -0.0028, -0.0146, -0.0187, -0.0390])
+
+
+fir = Fir([0.0027,    0.0021,    0.0025,    0.0025,    0.0021,    0.0011,   -0.0006,   -0.0028,   -0.0055,   -0.0083,\
+          -0.0109,   -0.0128,   -0.0136,   -0.0127,   -0.0097,   -0.0043,    0.0034,    0.0135,    0.0256,    0.0390,\
+           0.0530,    0.0666,    0.0790,    0.0893,    0.0966,    0.1003,    0.1003,    0.0966,    0.0893,    0.0790,\
+           0.0666,    0.0530,    0.0390,    0.0256,    0.0135,    0.0034,   -0.0043,   -0.0097,   -0.0127,   -0.0136,\
+          -0.0128,   -0.0109,   -0.0083,   -0.0055,   -0.0028,   -0.0006,    0.0011,    0.0021,    0.0025,    0.0025,\
+           0.0021,    0.0027])
+
+
+
+#print(fir.fir_filter)
+
+
+y_filt = fir.filter_data(y)
+
+# for sample in y:
+#     input0.set_input(sample)
+
+#     for input_element in fir.keys():
+#         output_elements = fir.get(input_element)        
 	
-        for element in output_elements:
-            if element != None:
-                element.set_input(input_element.output)
-            else:
-                y_filt.append(input_element.output)
+#         for element in output_elements:
+#             if element != None:
+#                 element.set_input(input_element.output)
+#             else:
+#                 y_filt.append(input_element.output)
 
-    for element in fir.keys():
-        element.clk()
-    
-    #for element in fir.keys():
-    #    print(element.output)
+#     for element in fir.keys():
+#         element.clk()
 
-    #print('--------')
     
 plt.plot(x, y, x, y_filt)
 plt.show()
